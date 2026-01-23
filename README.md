@@ -1,279 +1,282 @@
-The `solana-geyser-plugin-postgres` crate implements a plugin storing
-account data to a PostgreSQL database to illustrate how a plugin can be
-developed to work with Solana validators using the [Plugin Framework](https://docs.solana.com/developing/plugins/geyser-plugins).
+# Solana Geyser Plugin for PostgreSQL
 
-### Configuration File Format
+A Geyser plugin that streams account data, transactions, slots, and block metadata from a Solana validator to a PostgreSQL database.
 
-The plugin is configured using the input configuration file. An example
-configuration file looks like the following:
+## Quick Start
 
+### 1. Build the Plugin
+
+```bash
+cargo build --release
 ```
+
+This produces `target/release/libsolana_geyser_plugin_postgres.so` (Linux) or `.dylib` (macOS).
+
+### 2. Set Up PostgreSQL
+
+```bash
+# Install PostgreSQL (Ubuntu)
+sudo apt-get install postgresql-14
+sudo systemctl start postgresql@14-main
+
+# Create database and user
+sudo -u postgres createdb solana
+sudo -u postgres createuser solana
+
+# Create schema
+psql -U solana -d solana -f scripts/create_schema.sql
+```
+
+### 3. Configure the Plugin
+
+Create a config file (e.g., `geyser-config.json`):
+
+```json
 {
-	"libpath": "/solana/target/release/libsolana_geyser_plugin_postgres.so",
-	"host": "postgres-server",
-	"user": "solana",
-	"port": 5433,
-	"threads": 20,
-	"batch_size": 20,
-	"panic_on_db_errors": true,
-	"accounts_selector" : {
-		"accounts" : ["*"]
-	}
+    "libpath": "/path/to/libsolana_geyser_plugin_postgres.so",
+    "host": "localhost",
+    "user": "solana",
+    "port": 5432,
+    "threads": 20,
+    "batch_size": 20,
+    "panic_on_db_errors": true,
+    "accounts_selector": {
+        "accounts": ["*"]
+    },
+    "transaction_selector": {
+        "mentions": ["*"]
+    }
 }
 ```
 
-The `host`, `user`, and `port` control the PostgreSQL configuration
-information. For more advanced connection options, please use the
-`connection_str` field. Please see [Rust Postgres Configuration](https://docs.rs/postgres/0.19.2/postgres/config/struct.Config.html).
+### 4. Run the Validator
 
-To improve the throughput to the database, the plugin supports connection pooling
-using multiple threads, each maintaining a connection to the PostgreSQL database.
-The count of the threads is controlled by the `threads` field. A higher thread
-count usually offers better performance.
-
-To further improve performance when saving large numbers of accounts at
-startup, the plugin uses bulk inserts. The batch size is controlled by the
-`batch_size` parameter. This can help reduce the round trips to the database.
-
-The `panic_on_db_errors` can be used to panic the validator in case of database
-errors to ensure data consistency.
-
-### Support Connection Using SSL
-
-To connect to the PostgreSQL database via SSL, set `use_ssl` to true, and specify
-the server certificate, the client certificate and the client key files in PEM format
-using the `server_ca`, `client_cert` and `client_key` fields respectively.
-For example:
-
+```bash
+solana-validator --geyser-plugin-config geyser-config.json ...
 ```
+
+---
+
+## Configuration Reference
+
+### Connection Settings
+
+| Field | Description |
+|:------|:------------|
+| `libpath` | Path to the plugin shared library |
+| `host` | PostgreSQL server hostname |
+| `user` | PostgreSQL username |
+| `port` | PostgreSQL port |
+| `connection_str` | Alternative: full connection string (see [Rust Postgres Config](https://docs.rs/postgres/0.19.2/postgres/config/struct.Config.html)) |
+| `threads` | Number of worker threads (higher = better throughput) |
+| `batch_size` | Bulk insert batch size |
+| `panic_on_db_errors` | Panic validator on database errors for data consistency |
+
+### SSL Connection
+
+```json
+{
     "use_ssl": true,
-    "server_ca": "/solana/.ssh/server-ca.pem",
-    "client_cert": "/solana/.ssh/client-cert.pem",
-    "client_key": "/solana/.ssh/client-key.pem",
+    "server_ca": "/path/to/server-ca.pem",
+    "client_cert": "/path/to/client-cert.pem",
+    "client_key": "/path/to/client-key.pem"
+}
 ```
 
 ### Account Selection
 
-The `accounts_selector` can be used to filter the accounts that should be persisted.
-
-For example, one can use the following to persist only the accounts with particular
-Base58-encoded Pubkeys,
-
-```
-    "accounts_selector" : {
-         "accounts" : ["pubkey-1", "pubkey-2", ..., "pubkey-n"],
-    }
+Select all accounts:
+```json
+"accounts_selector": {
+    "accounts": ["*"]
+}
 ```
 
-Or use the following to select accounts with certain program owners:
-
+Select specific accounts by pubkey:
+```json
+"accounts_selector": {
+    "accounts": ["pubkey-1", "pubkey-2"]
+}
 ```
-    "accounts_selector" : {
-         "owners" : ["pubkey-owner-1", "pubkey-owner-2", ..., "pubkey-owner-m"],
-    }
-```
 
-To select all accounts, use the wildcard character (*):
-
-```
-    "accounts_selector" : {
-         "accounts" : ["*"],
-    }
+Select accounts by program owner:
+```json
+"accounts_selector": {
+    "owners": ["program-pubkey-1", "program-pubkey-2"]
+}
 ```
 
 ### Transaction Selection
 
-`transaction_selector`, controls if and what transactions to store.
-If this field is missing, none of the transactions are stored.
+If `transaction_selector` is missing, no transactions are stored.
 
-For example, one can use the following to select only the transactions
-referencing accounts with particular Base58-encoded Pubkeys,
-
-```
-"transaction_selector" : {
-    "mentions" : \["pubkey-1", "pubkey-2", ..., "pubkey-n"\],
+Select all transactions:
+```json
+"transaction_selector": {
+    "mentions": ["*"]
 }
 ```
 
-The `mentions` field supports wildcards to select all transaction or
-all 'vote' transactions. For example, to select all transactions:
-
-```
-"transaction_selector" : {
-    "mentions" : \["*"\],
+Select transactions mentioning specific accounts:
+```json
+"transaction_selector": {
+    "mentions": ["pubkey-1", "pubkey-2"]
 }
 ```
 
-To select all vote transactions:
-
-```
-"transaction_selector" : {
-    "mentions" : \["all_votes"\],
+Select all vote transactions:
+```json
+"transaction_selector": {
+    "mentions": ["all_votes"]
 }
 ```
 
-### Database Setup
+---
 
-#### Install PostgreSQL Server
+## Database Setup
 
-Please follow [PostgreSQL Ubuntu Installation](https://www.postgresql.org/download/linux/ubuntu/)
-on instructions to install the PostgreSQL database server. For example, to
-install postgresql-14,
+### Install PostgreSQL
 
-```
+```bash
+# Ubuntu
 sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
 wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
 sudo apt-get update
 sudo apt-get -y install postgresql-14
 ```
-#### Control the Database Access
 
-Modify the pg_hba.conf as necessary to grant the plugin to access the database.
-For example, in /etc/postgresql/14/main/pg_hba.conf, the following entry allows
-nodes with IPs in the CIDR 10.138.0.0/24 to access all databases. The validator
-runs in a node with an ip in the specified range.
+### Configure Access Control
+
+In `/etc/postgresql/14/main/pg_hba.conf`, add entries for your validator nodes:
 
 ```
-host    all             all             10.138.0.0/24           trust
+host    all    all    10.138.0.0/24    trust
 ```
 
-It is recommended to run the database server on a separate node from the validator for
-better performance.
+### Performance Tuning
 
-#### Configure the Database Performance Parameters
-
-Please refer to the [PostgreSQL Server Configuration](https://www.postgresql.org/docs/14/runtime-config.html)
-for configuration details. The referential implementation uses the following
-configurations for better database performance in the /etc/postgresql/14/main/postgresql.conf
-which are different from the default postgresql-14 installation.
+In `/etc/postgresql/14/main/postgresql.conf`:
 
 ```
-max_connections = 200                  # (change requires restart)
-shared_buffers = 1GB                   # min 128kB
-effective_io_concurrency = 1000        # 1-1000; 0 disables prefetching
-wal_level = minimal                    # minimal, replica, or logical
-fsync = off                            # flush data to disk for crash safety
-synchronous_commit = off               # synchronization level;
-full_page_writes = off                 # recover from partial page writes
-max_wal_senders = 0                    # max number of walsender processes
+max_connections = 200
+shared_buffers = 1GB
+effective_io_concurrency = 1000
+wal_level = minimal
+fsync = off
+synchronous_commit = off
+full_page_writes = off
+max_wal_senders = 0
 ```
 
-The sample scripts/postgresql.conf can be used for reference.
+See `scripts/postgresql.conf` for a complete reference configuration.
 
-#### Create the Database Instance and the Role
+### Create Database and Schema
 
-Start the server:
-
-```
+```bash
+# Start PostgreSQL
 sudo systemctl start postgresql@14-main
+
+# Create database and user
+sudo -u postgres createdb solana -p 5432
+sudo -u postgres createuser -p 5432 solana
+
+# Create schema
+psql -U solana -p 5432 -h localhost -d solana -f scripts/create_schema.sql
 ```
 
-Create the database. For example, the following creates a database named 'solana':
+### Drop Schema
 
-```
-sudo -u postgres createdb solana -p 5433
-```
-
-Create the database user. For example, the following creates a regular user named 'solana':
-
-```
-sudo -u postgres createuser -p 5433 solana
+```bash
+psql -U solana -p 5432 -h localhost -d solana -f scripts/drop_schema.sql
 ```
 
-Verify the database is working using psql. For example, assuming the node running
-PostgreSQL has the ip 10.138.0.9, the following command will land in a shell where
-SQL commands can be entered:
+---
 
-```
-psql -U solana -p 5433 -h 10.138.0.9 -w -d solana
-```
-
-#### Create the Schema Objects
-
-Use the scripts/create_schema.sql
-
-```
-psql -U solana -p 5433 -h 10.138.0.9 -w -d solana -f scripts/create_schema.sql
-```
-
-After this, start the validator with the plugin by using the `--geyser-plugin-config`
-argument mentioned above.
-
-#### Destroy the Schema Objects
-
-To destroy the database objects, created by `create_schema.sql`, use
-drop_schema.sql. For example,
-
-```
-psql -U solana -p 5433 -h 10.138.0.9 -w -d solana -f scripts/drop_schema.sql
-```
-
-### Capture Historical Account Data
-
-To capture account historical data, in the configuration file, turn
-`store_account_historical_data` to true.
-
-And ensure the database trigger is created to save data in the `audit_table` when
-records in `account` are updated, as shown in `create_schema.sql`,
-
-```
-CREATE FUNCTION audit_account_update() RETURNS trigger AS $audit_account_update$
-    BEGIN
-		INSERT INTO account_audit (pubkey, owner, lamports, slot, executable, rent_epoch, data, write_version, updated_on)
-            VALUES (OLD.pubkey, OLD.owner, OLD.lamports, OLD.slot,
-                    OLD.executable, OLD.rent_epoch, OLD.data, OLD.write_version, OLD.updated_on);
-        RETURN NEW;
-    END;
-
-$audit_account_update$ LANGUAGE plpgsql;
-
-CREATE TRIGGER account_update_trigger AFTER UPDATE OR DELETE ON account
-    FOR EACH ROW EXECUTE PROCEDURE audit_account_update();
-```
-
-The trigger can be dropped to disable this feature, for example,
-
-```
-DROP TRIGGER account_update_trigger ON account;
-```
-
-Over time, the account_audit can accumulate large amount of data. You may choose to
-limit that by deleting older historical data.
-
-For example, the following SQL statement can be used to keep up to 1000 of the most
-recent records for an account:
-
-```
-delete from account_audit a2 where (pubkey, write_version) in
-    (select pubkey, write_version from
-        (select a.pubkey, a.updated_on, a.slot, a.write_version, a.lamports,
-            rank() OVER ( partition by pubkey order by write_version desc) as rnk
-            from account_audit a) ranked
-            where ranked.rnk > 1000)
-```
+## Database Schema
 
 ### Main Tables
 
-The following are the tables in the Postgres database
+| Table | Description |
+|:------|:------------|
+| `accounts` | Current account state |
+| `slots` | Slot metadata and status |
+| `transactions` | Transaction data with signatures and metadata |
+| `blocks` | Block metadata including rewards |
+| `account_audits` | Historical account data (optional) |
 
-| Table         | Description             |
-|:--------------|:------------------------|
-| account       | Account data            |
-| block         | Block metadata          |
-| slot          | Slot metadata           |
-| transaction   | Transaction data        |
-| account_audit | Account historical data |
+### Index Tables
 
+| Table | Description |
+|:------|:------------|
+| `spl_token_owner_index` | SPL token owner to account mapping |
+| `spl_token_mint_index` | SPL token mint to account mapping |
 
-### Performance Considerations
+---
 
-When a validator lacks sufficient computing power, the overhead of saving the
-account data can cause it to fall behind the network especially when all
-accounts or a large number of accounts are selected. The node hosting the
-PostgreSQL database needs to be powerful enough to handle the database loads
-as well. It has been found using GCP n2-standard-64 machine type for the
-validator and n2-highmem-32 for the PostgreSQL node is adequate for handling
-transmitting all accounts while keeping up with the network. In addition, it is
-best to keep the validator and the PostgreSQL in the same local network to
-reduce latency. You may need to size the validator and database nodes
-differently if serving other loads.
+## Historical Account Data
+
+To capture account history, set `store_account_historical_data` to `true` in your config.
+
+The `accounts` table has a trigger that copies old records to `account_audits` on updates:
+
+```sql
+CREATE TRIGGER accounts_update_trigger AFTER UPDATE OR DELETE ON accounts
+    FOR EACH ROW EXECUTE PROCEDURE audit_account_update();
+```
+
+To disable historical tracking:
+```sql
+DROP TRIGGER accounts_update_trigger ON accounts;
+```
+
+### Pruning Historical Data
+
+Keep only the 1000 most recent records per account:
+
+```sql
+DELETE FROM account_audits a2 WHERE (pubkey, write_version) IN (
+    SELECT pubkey, write_version FROM (
+        SELECT pubkey, write_version,
+            RANK() OVER (PARTITION BY pubkey ORDER BY write_version DESC) as rnk
+        FROM account_audits
+    ) ranked
+    WHERE ranked.rnk > 1000
+);
+```
+
+---
+
+## Performance Considerations
+
+- **Validator resources**: Use a powerful machine (e.g., GCP n2-standard-64) when storing all accounts
+- **Database resources**: Use a dedicated database server (e.g., GCP n2-highmem-32)
+- **Network**: Keep validator and database on the same local network to minimize latency
+- **Thread count**: Higher `threads` value improves throughput
+- **Batch size**: Larger `batch_size` reduces database round trips during startup
+
+---
+
+## Development
+
+### Build
+
+```bash
+cargo build --release
+```
+
+### Run Tests
+
+```bash
+# Unit tests
+cargo test --lib
+
+# Integration tests (requires PostgreSQL)
+cargo test
+```
+
+### Lint
+
+```bash
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- --deny=warnings
+```
