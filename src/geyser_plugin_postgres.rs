@@ -9,10 +9,11 @@ use {
     log::*,
     serde_derive::{Deserialize, Serialize},
     serde_json,
-    solana_geyser_plugin_interface::geyser_plugin_interface::{
-        GeyserPlugin, GeyserPluginError, ReplicaAccountInfoVersions, ReplicaBlockInfoVersions,
-        ReplicaTransactionInfoVersions, Result, SlotStatus,
+    agave_geyser_plugin_interface::geyser_plugin_interface::{
+        GeyserPlugin, GeyserPluginError, ReplicaAccountInfoVersions,
+        ReplicaBlockInfoVersions, ReplicaTransactionInfoVersions, Result, SlotStatus,
     },
+    solana_clock::Slot,
     solana_measure::measure::Measure,
     solana_metrics::*,
     std::{fs::File, io::Read},
@@ -168,7 +169,7 @@ impl GeyserPlugin for GeyserPluginPostgres {
     ///    }
     /// }
 
-    fn on_load(&mut self, config_file: &str) -> Result<()> {
+    fn on_load(&mut self, config_file: &str, _is_reload: bool) -> Result<()> {
         solana_logger::setup_with_default("info");
         info!(
             "Loading plugin {:?} from config_file {:?}",
@@ -311,7 +312,7 @@ impl GeyserPlugin for GeyserPluginPostgres {
         Ok(())
     }
 
-    fn update_slot_status(&self, slot: u64, parent: Option<u64>, status: SlotStatus) -> Result<()> {
+    fn update_slot_status(&self, slot: u64, parent: Option<u64>, status: &SlotStatus) -> Result<()> {
         info!("Updating slot {:?} at with status {:?}", slot, status);
 
         match &self.client {
@@ -323,7 +324,7 @@ impl GeyserPlugin for GeyserPluginPostgres {
                 )));
             }
             Some(client) => {
-                let result = client.update_slot_status(slot, parent, status);
+                let result = client.update_slot_status(slot, parent, status.clone());
 
                 if let Err(err) = result {
                     return Err(GeyserPluginError::SlotStatusUpdateError{
@@ -362,7 +363,7 @@ impl GeyserPlugin for GeyserPluginPostgres {
     fn notify_transaction(
         &self,
         transaction_info: ReplicaTransactionInfoVersions,
-        slot: u64,
+        slot: Slot,
     ) -> Result<()> {
         match &self.client {
             None => {
@@ -414,6 +415,15 @@ impl GeyserPlugin for GeyserPluginPostgres {
                 )));
             }
             Some(client) => match block_info {
+                ReplicaBlockInfoVersions::V0_0_4(block_info) => {
+                    let result = client.update_block_metadata_v4(block_info);
+
+                    if let Err(err) = result {
+                        return Err(GeyserPluginError::SlotStatusUpdateError{
+                                msg: format!("Failed to persist the update of block metadata to the PostgreSQL database. Error: {:?}", err)
+                            });
+                    }
+                }
                 ReplicaBlockInfoVersions::V0_0_3(block_info) => {
                     let result = client.update_block_metadata(block_info);
 

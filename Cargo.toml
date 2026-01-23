@@ -2,22 +2,22 @@
 authors = ["Solana Maintainers <maintainers@solana.foundation>"]
 edition = "2021"
 name = "solana-geyser-plugin-postgres"
-description = "The Solana AccountsDb plugin for PostgreSQL database."
-version = "1.17.3"
+description = "The X1 AccountsDb plugin for PostgreSQL database."
+version = "2.2.7"
 repository = "https://github.com/solana-labs/solana-accountsdb-plugin-postgres"
 license = "Apache-2.0"
-homepage = "https://solana.com/"
+homepage = "https://x1.xyz/"
 documentation = "https://docs.rs/solana-validator"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-bs58 = "0.4.0"
+bs58 = "0.5.1"
 bytemuck = "1.12.1"
 chrono = { version = "0.4.24", features = ["serde"] }
 crossbeam-channel = "0.5.7"
-log = "0.4.17"
+log = "0.4.27"
 openssl = { version = "0.10.42" }
 postgres = { version = "0.19.4", features = ["with-chrono-0_4"] }
 postgres-types = { version = "0.2.4", features = ["derive"] }
@@ -25,15 +25,17 @@ postgres-openssl = { version = "0.5.0"}
 serde = "1.0.145"
 serde_derive = "1.0.145"
 serde_json = "1.0.85"
-solana-geyser-plugin-interface = { version = "=1.17.3" }
-solana-logger = { version = "1.17.3" }
-solana-measure = { version = "1.17.3" }
-solana-metrics = { version = "1.17.3" }
-solana-runtime = { version = "1.17.3" }
-solana-sdk = { version = "1.17.3" }
-solana-transaction-status = { version = "1.17.3" }
-thiserror = "1.0.37"
+agave-geyser-plugin-interface = { version = "=2.2.7" }
+solana-logger = { version = "=2.3.1" }
+solana-measure = { version = "=2.2.7" }
+solana-metrics = { version = "=2.2.7" }
+solana-sdk = { version = "=2.2.2" }
+solana-transaction-status = { version = "=2.2.7" }
+solana-clock = { version = "=2.2.1" }
+solana-reward-info = { version = "=2.2.1" }
+thiserror = "2.0.12"
 tokio-postgres = "0.7.7"
+blake3 = "=1.8.2"
 
 [dev-dependencies]
 libc = "0.2.134"
@@ -41,11 +43,7 @@ libloading = "0.7.3"
 serial_test = "0.9.0"
 socket2 = { version = "0.4.7", features = ["all"] }
 
-solana-account-decoder = { version = "1.17.3" }
-solana-core = { version = "1.17.3" }
-solana-local-cluster = { version = "1.17.3" }
-solana-net-utils = { version = "1.17.3" }
-solana-streamer = { version = "1.17.3" }
+solana-account-decoder = { version = "=2.2.7" }
 tempfile = "3.3.0"
 
 [package.metadata.docs.rs]

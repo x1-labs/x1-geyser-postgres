@@ -1,0 +1,17 @@
+{
+    "libpath": "/path/to/libsolana_geyser_plugin_postgres.dylib",
+    "host": "localhost",
+    "user": "postgres",
+    "port": 5432,
+    "connection_str": "host=localhost user=postgres dbname=solana",
+    "threads": 10,
+    "batch_size": 10,
+    "panic_on_db_errors": false,
+    "store_account_historical_data": true,
+    "accounts_selector": {
+        "accounts": ["*"]
+    },
+    "transaction_selector": {
+        "mentions": ["*"]
+    }
+}

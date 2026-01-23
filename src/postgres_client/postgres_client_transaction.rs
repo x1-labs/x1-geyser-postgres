@@ -9,10 +9,10 @@ use {
     log::*,
     postgres::{Client, Statement},
     postgres_types::{FromSql, ToSql},
-    solana_geyser_plugin_interface::geyser_plugin_interface::{
+    agave_geyser_plugin_interface::geyser_plugin_interface::{
         GeyserPluginError, ReplicaTransactionInfoV2,
     },
-    solana_runtime::bank::RewardType,
+    solana_reward_info::RewardType,
     solana_sdk::{
         instruction::CompiledInstruction,
         message::{
@@ -353,6 +353,8 @@ pub enum DbTransactionErrorCode {
     ResanitizationNeeded,
     UnbalancedTransaction,
     ProgramExecutionTemporarilyRestricted,
+    ProgramCacheHitMaxLimit,
+    CommitCancelled,
 }
 
 impl From<&TransactionError> for DbTransactionErrorCode {
@@ -413,6 +415,8 @@ impl From<&TransactionError> for DbTransactionErrorCode {
             TransactionError::ProgramExecutionTemporarilyRestricted { account_index: _ } => {
                 Self::ProgramExecutionTemporarilyRestricted
             }
+            TransactionError::ProgramCacheHitMaxLimit => Self::ProgramCacheHitMaxLimit,
+            TransactionError::CommitCancelled => Self::CommitCancelled,
         }
     }
 }
@@ -670,6 +674,7 @@ pub(crate) mod tests {
             },
         },
         solana_transaction_status::InnerInstruction,
+        std::collections::HashSet,
     };
 
     fn check_compiled_instruction_equality(
@@ -1314,12 +1319,14 @@ pub(crate) mod tests {
 
     #[test]
     fn test_transform_loaded_message_v0() {
+        let reserved_account_keys = HashSet::new();
         let message = v0::LoadedMessage::new(
             build_transaction_message_v0(),
             LoadedAddresses {
                 writable: vec![Pubkey::new_unique(), Pubkey::new_unique()],
                 readonly: vec![Pubkey::new_unique(), Pubkey::new_unique()],
             },
+            &reserved_account_keys,
         );
 
         let db_message = DbLoadedMessageV0::from(&message);
@@ -1387,11 +1394,13 @@ pub(crate) mod tests {
 
         let transaction = VersionedTransaction::from(transaction);
 
+        let reserved_account_keys = HashSet::new();
         let transaction = SanitizedTransaction::try_create(
             transaction,
             message_hash,
             Some(true),
             SimpleAddressLoader::Disabled,
+            &reserved_account_keys,
         )
         .unwrap();
 
@@ -1429,6 +1438,7 @@ pub(crate) mod tests {
 
         transaction.sanitize().unwrap();
 
+        let reserved_account_keys = HashSet::new();
         let transaction = SanitizedTransaction::try_create(
             transaction,
             message_hash,
@@ -1437,6 +1447,7 @@ pub(crate) mod tests {
                 writable: vec![Pubkey::new_unique(), Pubkey::new_unique()],
                 readonly: vec![Pubkey::new_unique(), Pubkey::new_unique()],
             }),
+            &reserved_account_keys,
         )
         .unwrap();
 
