@@ -4,7 +4,7 @@
 -- The table storing accounts
 
 
-CREATE TABLE account (
+CREATE TABLE accounts (
     pubkey BYTEA PRIMARY KEY,
     owner BYTEA,
     lamports BIGINT NOT NULL,
@@ -17,12 +17,12 @@ CREATE TABLE account (
     txn_signature BYTEA
 );
 
-CREATE INDEX account_owner ON account (owner);
+CREATE INDEX accounts_owner ON accounts (owner);
 
-CREATE INDEX account_slot ON account (slot);
+CREATE INDEX accounts_slot ON accounts (slot);
 
 -- The table storing slot information
-CREATE TABLE slot (
+CREATE TABLE slots (
     slot BIGINT PRIMARY KEY,
     parent BIGINT,
     status VARCHAR(32) NOT NULL,
@@ -162,7 +162,7 @@ CREATE TYPE "LoadedMessageV0" AS (
 );
 
 -- The table storing transactions
-CREATE TABLE transaction (
+CREATE TABLE transactions (
     slot BIGINT NOT NULL,
     signature BYTEA NOT NULL,
     is_vote BOOL NOT NULL,
@@ -175,11 +175,11 @@ CREATE TABLE transaction (
     write_version BIGINT,
     updated_on TIMESTAMP NOT NULL,
     index BIGINT NOT NULL,
-    CONSTRAINT transaction_pk PRIMARY KEY (slot, signature)
+    CONSTRAINT transactions_pk PRIMARY KEY (slot, signature)
 );
 
 -- The table storing block metadata
-CREATE TABLE block (
+CREATE TABLE blocks (
     slot BIGINT PRIMARY KEY,
     blockhash VARCHAR(44),
     rewards "Reward"[],
@@ -212,7 +212,7 @@ CREATE UNIQUE INDEX spl_token_mint_index_mint_pair ON spl_token_mint_index (mint
  * The following is for keeping historical data for accounts and is not required for plugin to work.
  */
 -- The table storing historical data for accounts
-CREATE TABLE account_audit (
+CREATE TABLE account_audits (
     pubkey BYTEA,
     owner BYTEA,
     lamports BIGINT NOT NULL,
@@ -225,14 +225,14 @@ CREATE TABLE account_audit (
     txn_signature BYTEA
 );
 
-CREATE INDEX account_audit_account_key ON  account_audit (pubkey, write_version);
+CREATE INDEX account_audits_account_key ON account_audits (pubkey, write_version);
 
-CREATE INDEX account_audit_pubkey_slot ON account_audit (pubkey, slot);
+CREATE INDEX account_audits_pubkey_slot ON account_audits (pubkey, slot);
 
 CREATE FUNCTION audit_account_update() RETURNS trigger AS $audit_account_update$
     BEGIN
-		INSERT INTO account_audit (pubkey, owner, lamports, slot, executable,
-		                           rent_epoch, data, write_version, updated_on, txn_signature)
+		INSERT INTO account_audits (pubkey, owner, lamports, slot, executable,
+		                            rent_epoch, data, write_version, updated_on, txn_signature)
             VALUES (OLD.pubkey, OLD.owner, OLD.lamports, OLD.slot,
                     OLD.executable, OLD.rent_epoch, OLD.data,
                     OLD.write_version, OLD.updated_on, OLD.txn_signature);
@@ -241,5 +241,5 @@ CREATE FUNCTION audit_account_update() RETURNS trigger AS $audit_account_update$
 
 $audit_account_update$ LANGUAGE plpgsql;
 
-CREATE TRIGGER account_update_trigger AFTER UPDATE OR DELETE ON account
+CREATE TRIGGER accounts_update_trigger AFTER UPDATE OR DELETE ON accounts
     FOR EACH ROW EXECUTE PROCEDURE audit_account_update();

@@ -2,13 +2,13 @@
  * Script for cleaning up the schema for PostgreSQL used for the AccountsDb plugin.
  */
 
-DROP TRIGGER account_update_trigger ON account;
+DROP TRIGGER accounts_update_trigger ON accounts;
 DROP FUNCTION audit_account_update;
-DROP TABLE account_audit;
-DROP TABLE account CASCADE;
-DROP TABLE slot;
-DROP TABLE transaction;
-DROP TABLE block;
+DROP TABLE account_audits;
+DROP TABLE accounts CASCADE;
+DROP TABLE slots;
+DROP TABLE transactions;
+DROP TABLE blocks;
 DROP TABLE spl_token_owner_index;
 DROP TABLE spl_token_mint_index;
 
