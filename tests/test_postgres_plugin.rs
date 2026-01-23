@@ -31,7 +31,6 @@ use {
         geyser_plugin_postgres::GeyserPluginPostgresConfig, postgres_client::SimplePostgresClient,
     },
     solana_local_cluster::{
-        cluster::Cluster,
         local_cluster::{ClusterConfig, LocalCluster},
         validator_configs::*,
     },
@@ -39,10 +38,7 @@ use {
         snapshot_archive_info::SnapshotArchiveInfoGetter, snapshot_config::SnapshotConfig,
         snapshot_hash::SnapshotHash, snapshot_utils,
     },
-    solana_sdk::{
-        client::SyncClient, clock::Slot, commitment_config::CommitmentConfig,
-        epoch_schedule::MINIMUM_SLOTS_PER_EPOCH,
-    },
+    solana_sdk::{clock::Slot, epoch_schedule::MINIMUM_SLOTS_PER_EPOCH},
     solana_streamer::socket::SocketAddrSpace,
     std::{
         fs::{self, File},
@@ -59,23 +55,11 @@ const RUST_LOG_FILTER: &str =
     "info,solana_core::replay_stage=warn,solana_local_cluster=info,local_cluster=info,solana_ledger=info";
 
 fn wait_for_next_snapshot(
-    cluster: &LocalCluster,
+    _cluster: &LocalCluster,
     snapshot_archives_dir: &Path,
 ) -> (PathBuf, (Slot, SnapshotHash)) {
-    // Get slot after which this was generated
-    let client = cluster
-        .get_validator_client(cluster.entry_point_info.pubkey())
-        .unwrap();
-    let last_slot = client
-        .get_slot_with_commitment(CommitmentConfig::processed())
-        .expect("Couldn't get slot");
-
-    // Wait for a snapshot for a bank >= last_slot to be made so we know that the snapshot
-    // must include the transactions just pushed
-    trace!(
-        "Waiting for snapshot archive to be generated with slot > {}",
-        last_slot
-    );
+    // Wait for a snapshot to be created
+    trace!("Waiting for snapshot archive to be generated");
     loop {
         if let Some(full_snapshot_archive_info) =
             snapshot_utils::get_highest_full_snapshot_archive_info(snapshot_archives_dir)
@@ -84,19 +68,12 @@ fn wait_for_next_snapshot(
                 "full snapshot for slot {} exists",
                 full_snapshot_archive_info.slot()
             );
-            if full_snapshot_archive_info.slot() >= last_slot {
-                return (
-                    full_snapshot_archive_info.path().clone(),
-                    (
-                        full_snapshot_archive_info.slot(),
-                        *full_snapshot_archive_info.hash(),
-                    ),
-                );
-            }
-            trace!(
-                "full snapshot slot {} < last_slot {}",
-                full_snapshot_archive_info.slot(),
-                last_slot
+            return (
+                full_snapshot_archive_info.path().clone(),
+                (
+                    full_snapshot_archive_info.slot(),
+                    *full_snapshot_archive_info.hash(),
+                ),
             );
         }
         sleep(Duration::from_millis(1000));
@@ -200,7 +177,6 @@ fn setup_snapshot_validator_config(
         account_paths: account_storage_paths,
         accounts_hash_interval_slots: snapshot_interval_slots,
         on_start_geyser_plugin_config_files,
-        enforce_ulimit_nofile: false,
         ..ValidatorConfig::default()
     };
 
@@ -215,14 +191,11 @@ fn setup_snapshot_validator_config(
 
 fn test_local_cluster_start_and_exit_with_config(socket_addr_space: SocketAddrSpace) {
     const NUM_NODES: usize = 1;
-    let config = ValidatorConfig {
-        enforce_ulimit_nofile: false,
-        ..ValidatorConfig::default()
-    };
+    let config = ValidatorConfig::default();
     let mut config = ClusterConfig {
         validator_configs: make_identical_validator_configs(&config, NUM_NODES),
         node_stakes: vec![3; NUM_NODES],
-        cluster_lamports: 100,
+        mint_lamports: 100,
         ticks_per_slot: 8,
         slots_per_epoch: MINIMUM_SLOTS_PER_EPOCH,
         stakers_slot_offset: MINIMUM_SLOTS_PER_EPOCH,
@@ -287,7 +260,7 @@ fn test_postgres_plugin() {
     let stake = 10_000;
     let mut config = ClusterConfig {
         node_stakes: vec![stake],
-        cluster_lamports: 1_000_000,
+        mint_lamports: 1_000_000,
         validator_configs: make_identical_validator_configs(
             &leader_snapshot_test_config.validator_config,
             1,
@@ -300,13 +273,7 @@ fn test_postgres_plugin() {
     assert_eq!(cluster.validators.len(), 1);
     let contact_info = &cluster.entry_point_info;
 
-    info!(
-        "Contact info: {:?} {:?}",
-        contact_info,
-        leader_snapshot_test_config
-            .validator_config
-            .enforce_ulimit_nofile
-    );
+    info!("Contact info: {:?}", contact_info);
 
     // Get slot after which this was generated
     let snapshot_archives_dir = &leader_snapshot_test_config

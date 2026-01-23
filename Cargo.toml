@@ -43,7 +43,16 @@ libloading = "0.7.3"
 serial_test = "0.9.0"
 socket2 = { version = "0.4.7", features = ["all"] }
 
+# Pin crates to avoid edition2024 and rustc version issues
+home = "=0.5.9"
+globset = "=0.4.15"
+async-lock = "=3.4.0"
+
 solana-account-decoder = { version = "=2.2.7" }
+solana-core = { version = "=2.2.7" }
+solana-local-cluster = { version = "=2.2.7" }
+solana-runtime = { version = "=2.2.7" }
+solana-streamer = { version = "=2.2.7" }
 tempfile = "3.3.0"
 
 [package.metadata.docs.rs]
