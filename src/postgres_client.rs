@@ -46,6 +46,121 @@ const DEFAULT_ACCOUNTS_INSERT_BATCH_SIZE: usize = 10;
 const ACCOUNT_COLUMN_COUNT: usize = 10;
 const DEFAULT_PANIC_ON_DB_ERROR: bool = false;
 const DEFAULT_STORE_ACCOUNT_HISTORICAL_DATA: bool = false;
+const DEFAULT_SLOTS_PER_EPOCH: u64 = 432000;
+const MINIMUM_SLOTS_PER_EPOCH: u64 = 32;
+
+/// Epoch schedule configuration for calculating epoch from slot
+#[derive(Clone, Debug)]
+struct EpochConfig {
+    slots_per_epoch: u64,
+    warmup: bool,
+    /// First epoch with full slots_per_epoch length
+    first_normal_epoch: u64,
+    /// First slot of the first normal epoch
+    first_normal_slot: u64,
+}
+
+impl EpochConfig {
+    fn new(slots_per_epoch: u64, warmup: bool) -> Self {
+        if !warmup {
+            return Self {
+                slots_per_epoch,
+                warmup: false,
+                first_normal_epoch: 0,
+                first_normal_slot: 0,
+            };
+        }
+
+        // Calculate warmup parameters
+        // Epochs double in size from MINIMUM_SLOTS_PER_EPOCH until reaching slots_per_epoch
+        let mut epoch = 0u64;
+        let mut slot = 0u64;
+        let mut epoch_len = MINIMUM_SLOTS_PER_EPOCH;
+
+        while epoch_len < slots_per_epoch {
+            slot += epoch_len;
+            epoch += 1;
+            epoch_len = epoch_len.saturating_mul(2);
+        }
+
+        Self {
+            slots_per_epoch,
+            warmup: true,
+            first_normal_epoch: epoch,
+            first_normal_slot: slot,
+        }
+    }
+
+    /// Calculate epoch for a given slot
+    fn get_epoch(&self, slot: u64) -> u64 {
+        if !self.warmup || slot >= self.first_normal_slot {
+            // Past warmup or no warmup - simple division
+            let normal_slot_offset = slot.saturating_sub(self.first_normal_slot);
+            self.first_normal_epoch + normal_slot_offset / self.slots_per_epoch
+        } else {
+            // During warmup - epochs double in size starting from MINIMUM_SLOTS_PER_EPOCH
+            let mut epoch = 0u64;
+            let mut current_slot = 0u64;
+            let mut epoch_len = MINIMUM_SLOTS_PER_EPOCH;
+
+            loop {
+                let next_slot = current_slot + epoch_len;
+                if slot < next_slot {
+                    return epoch;
+                }
+                current_slot = next_slot;
+                epoch += 1;
+                epoch_len = epoch_len.saturating_mul(2);
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod epoch_config_tests {
+    use super::*;
+
+    #[test]
+    fn test_epoch_config_no_warmup() {
+        let config = EpochConfig::new(432000, false);
+        assert_eq!(config.first_normal_epoch, 0);
+        assert_eq!(config.first_normal_slot, 0);
+        assert_eq!(config.get_epoch(0), 0);
+        assert_eq!(config.get_epoch(431999), 0);
+        assert_eq!(config.get_epoch(432000), 1);
+        assert_eq!(config.get_epoch(864000), 2);
+    }
+
+    #[test]
+    fn test_epoch_config_warmup_100_slots() {
+        // Test validator with 100 slots per epoch and warmup
+        // Warmup: 32, 64, then 100 (full)
+        // Epoch 0: slots 0-31 (32 slots)
+        // Epoch 1: slots 32-95 (64 slots)
+        // Epoch 2: slots 96-195 (100 slots) - first normal
+        // Epoch 3: slots 196-295
+        // Epoch 4: slots 296-395
+        let config = EpochConfig::new(100, true);
+        assert_eq!(config.first_normal_epoch, 2);
+        assert_eq!(config.first_normal_slot, 96); // 32 + 64
+
+        // Warmup epochs
+        assert_eq!(config.get_epoch(0), 0);
+        assert_eq!(config.get_epoch(31), 0);
+        assert_eq!(config.get_epoch(32), 1);
+        assert_eq!(config.get_epoch(95), 1);
+
+        // Normal epochs
+        assert_eq!(config.get_epoch(96), 2);
+        assert_eq!(config.get_epoch(195), 2);
+        assert_eq!(config.get_epoch(196), 3);
+        assert_eq!(config.get_epoch(295), 3);
+        assert_eq!(config.get_epoch(296), 4);
+        assert_eq!(config.get_epoch(376), 4);
+        assert_eq!(config.get_epoch(395), 4);
+        assert_eq!(config.get_epoch(396), 5);
+    }
+}
 
 struct PostgresSqlClientWrapper {
     client: Client,
@@ -64,6 +179,7 @@ struct PostgresSqlClientWrapper {
 
 pub struct SimplePostgresClient {
     batch_size: usize,
+    epoch_config: EpochConfig,
     slots_at_startup: HashSet<u64>,
     pending_account_updates: Vec<DbAccountInfo>,
     index_token_owner: bool,
@@ -334,6 +450,7 @@ impl SimplePostgresClient {
         }
     }
 
+
     fn build_bulk_account_insert_statement(
         client: &mut Client,
         config: &GeyserPluginPostgresConfig,
@@ -458,9 +575,9 @@ impl SimplePostgresClient {
         client: &mut Client,
         config: &GeyserPluginPostgresConfig,
     ) -> Result<Statement, GeyserPluginError> {
-        let stmt = "INSERT INTO slots (slot, parent, status, updated_on) \
-        VALUES ($1, $2, $3, $4) \
-        ON CONFLICT (slot) DO UPDATE SET parent=excluded.parent, status=excluded.status, updated_on=excluded.updated_on";
+        let stmt = "INSERT INTO slots (slot, parent, status, epoch, updated_on) \
+        VALUES ($1, $2, $3, $4, $5) \
+        ON CONFLICT (slot) DO UPDATE SET parent=excluded.parent, status=excluded.status, epoch=excluded.epoch, updated_on=excluded.updated_on";
 
         let stmt = client.prepare(stmt);
 
@@ -481,9 +598,9 @@ impl SimplePostgresClient {
         client: &mut Client,
         config: &GeyserPluginPostgresConfig,
     ) -> Result<Statement, GeyserPluginError> {
-        let stmt = "INSERT INTO slots (slot, status, updated_on) \
-        VALUES ($1, $2, $3) \
-        ON CONFLICT (slot) DO UPDATE SET status=excluded.status, updated_on=excluded.updated_on";
+        let stmt = "INSERT INTO slots (slot, status, epoch, updated_on) \
+        VALUES ($1, $2, $3, $4) \
+        ON CONFLICT (slot) DO UPDATE SET status=excluded.status, epoch=excluded.epoch, updated_on=excluded.updated_on";
 
         let stmt = client.prepare(stmt);
 
@@ -687,6 +804,7 @@ impl SimplePostgresClient {
 
     /// Flush any left over accounts in batch which are not processed in the last batch
     fn flush_buffered_writes(&mut self) -> Result<(), GeyserPluginError> {
+        let epoch_config = self.epoch_config.clone();
         let client = self.client.get_mut().unwrap();
         let insert_account_audit_stmt = &client.insert_account_audit_stmt;
         let statement = &client.update_account_stmt;
@@ -715,6 +833,7 @@ impl SimplePostgresClient {
                 SlotStatus::Rooted,
                 client,
                 insert_slot_stmt,
+                &epoch_config,
             )?;
         }
         measure.stop();
@@ -736,15 +855,17 @@ impl SimplePostgresClient {
         status: SlotStatus,
         client: &mut Client,
         statement: &Statement,
+        epoch_config: &EpochConfig,
     ) -> Result<(), GeyserPluginError> {
-        let slot = slot as i64; // postgres only supports i64
+        let slot_i64 = slot as i64; // postgres only supports i64
         let parent = parent.map(|parent| parent as i64);
+        let epoch = epoch_config.get_epoch(slot) as i64;
         let updated_on = Utc::now().naive_utc();
         let status_str = status.as_str();
 
         let result = match parent {
-            Some(parent) => client.execute(statement, &[&slot, &parent, &status_str, &updated_on]),
-            None => client.execute(statement, &[&slot, &status_str, &updated_on]),
+            Some(parent) => client.execute(statement, &[&slot_i64, &parent, &status_str, &epoch, &updated_on]),
+            None => client.execute(statement, &[&slot_i64, &status_str, &epoch, &updated_on]),
         };
 
         match result {
@@ -827,9 +948,21 @@ impl SimplePostgresClient {
             None
         };
 
+        let slots_per_epoch = config.slots_per_epoch.unwrap_or(DEFAULT_SLOTS_PER_EPOCH);
+        let warmup = config.epoch_schedule_warmup.unwrap_or(false);
+        let epoch_config = EpochConfig::new(slots_per_epoch, warmup);
+        info!(
+            "Epoch config: slots_per_epoch={}, warmup={}, first_normal_epoch={}, first_normal_slot={}",
+            epoch_config.slots_per_epoch,
+            epoch_config.warmup,
+            epoch_config.first_normal_epoch,
+            epoch_config.first_normal_slot
+        );
+
         info!("Created SimplePostgresClient.");
         Ok(Self {
             batch_size,
+            epoch_config,
             pending_account_updates: Vec::with_capacity(batch_size),
             client: Mutex::new(PostgresSqlClientWrapper {
                 client,
@@ -906,6 +1039,7 @@ impl PostgresClient for SimplePostgresClient {
     ) -> Result<(), GeyserPluginError> {
         info!("Updating slot {:?} at with status {:?}", slot, status);
 
+        let epoch_config = self.epoch_config.clone();
         let client = self.client.get_mut().unwrap();
 
         let statement = match parent {
@@ -913,7 +1047,7 @@ impl PostgresClient for SimplePostgresClient {
             None => &client.update_slot_without_parent_stmt,
         };
 
-        Self::upsert_slot_status_internal(slot, parent, status, &mut client.client, statement)
+        Self::upsert_slot_status_internal(slot, parent, status, &mut client.client, statement, &epoch_config)
     }
 
     fn notify_end_of_startup(&mut self) -> Result<(), GeyserPluginError> {

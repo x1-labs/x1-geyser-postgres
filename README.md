@@ -71,6 +71,9 @@ solana-validator --geyser-plugin-config geyser-config.json ...
 | `threads` | Number of worker threads (higher = better throughput) |
 | `batch_size` | Bulk insert batch size |
 | `panic_on_db_errors` | Panic validator on database errors for data consistency |
+| `rpc_url` | RPC URL to fetch epoch schedule at startup (e.g., "http://localhost:8899") |
+| `slots_per_epoch` | Fallback: slots per epoch if RPC unavailable (default: 432000) |
+| `epoch_schedule_warmup` | Fallback: enable warmup for test validators (default: false) |
 
 ### SSL Connection
 

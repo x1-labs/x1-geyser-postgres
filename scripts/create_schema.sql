@@ -26,8 +26,11 @@ CREATE TABLE slots (
     slot BIGINT PRIMARY KEY,
     parent BIGINT,
     status VARCHAR(32) NOT NULL,
+    epoch BIGINT,
     updated_on TIMESTAMP NOT NULL
 );
+
+CREATE INDEX slots_epoch ON slots (epoch);
 
 -- Types for Transactions
 

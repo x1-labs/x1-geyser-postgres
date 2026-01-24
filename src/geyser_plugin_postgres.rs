@@ -88,6 +88,15 @@ pub struct GeyserPluginPostgresConfig {
     /// and ignore upsetr accounts (at_startup) that should already exist in DB
     #[serde(default)]
     pub skip_upsert_existing_accounts_at_startup: bool,
+
+    /// Number of slots per epoch, used to calculate epoch from slot.
+    /// Default is 432000 (Solana mainnet).
+    pub slots_per_epoch: Option<u64>,
+
+    /// Enable epoch warmup schedule where epoch lengths grow from small to full size.
+    /// Set to true for test validators, false for mainnet-like behavior.
+    /// Default is false.
+    pub epoch_schedule_warmup: Option<bool>,
 }
 
 #[derive(Error, Debug)]
