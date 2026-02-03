@@ -169,7 +169,7 @@ impl GeyserPlugin for GeyserPluginPostgres {
     /// # Examples
     ///
     /// {
-    ///    "libpath": "/home/solana/target/release/libsolana_geyser_plugin_postgres.so",
+    ///    "libpath": "/home/x1/target/release/libx1_geyser_postgres.so",
     ///    "host": "host_foo",
     ///    "user": "solana",
     ///    "threads": 10,

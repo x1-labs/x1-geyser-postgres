@@ -1,6 +1,6 @@
-# Solana Geyser Plugin for PostgreSQL
+# X1 Geyser Plugin for PostgreSQL
 
-A Geyser plugin that streams account data, transactions, slots, and block metadata from a Solana validator to a PostgreSQL database.
+A Geyser plugin that streams account data, transactions, slots, and block metadata from an X1 validator to a PostgreSQL database.
 
 ## Quick Start
 
@@ -10,7 +10,7 @@ A Geyser plugin that streams account data, transactions, slots, and block metada
 cargo build --release
 ```
 
-This produces `target/release/libsolana_geyser_plugin_postgres.so` (Linux) or `.dylib` (macOS).
+This produces `target/release/libx1_geyser_postgres.so` (Linux) or `.dylib` (macOS).
 
 ### 2. Set Up PostgreSQL
 
@@ -33,7 +33,7 @@ Create a config file (e.g., `geyser-config.json`):
 
 ```json
 {
-    "libpath": "/path/to/libsolana_geyser_plugin_postgres.so",
+    "libpath": "/path/to/libx1_geyser_postgres.so",
     "host": "localhost",
     "user": "solana",
     "port": 5432,

@@ -27,7 +27,7 @@ use {
     log::*,
     serial_test::serial,
     solana_core::validator::ValidatorConfig,
-    solana_geyser_plugin_postgres::{
+    x1_geyser_postgres::{
         geyser_plugin_postgres::GeyserPluginPostgresConfig, postgres_client::SimplePostgresClient,
     },
     solana_local_cluster::{
@@ -107,9 +107,9 @@ fn generate_geyser_plugin_config() -> (TempDir, PathBuf) {
     // as the framework is looking for the library relative to the
     // config file otherwise.
     let lib_name = if std::env::consts::OS == "macos" {
-        "libsolana_geyser_plugin_postgres.dylib"
+        "libx1_geyser_postgres.dylib"
     } else {
-        "libsolana_geyser_plugin_postgres.so"
+        "libx1_geyser_postgres.so"
     };
 
     let mut lib_path = path.clone();
@@ -219,8 +219,8 @@ fn test_postgres_plugin() {
 
     unsafe {
         let filename = match std::env::consts::OS {
-            "macos" => "libsolana_geyser_plugin_postgres.dylib",
-            _ => "libsolana_geyser_plugin_postgres.so",
+            "macos" => "libx1_geyser_postgres.dylib",
+            _ => "libx1_geyser_postgres.so",
         };
 
         let lib = Library::new(filename);

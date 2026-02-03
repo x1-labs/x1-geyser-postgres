@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is `solana-geyser-plugin-postgres`, a Solana Geyser plugin that streams account data, transactions, slots, and block metadata to a PostgreSQL database. It implements the [Solana Geyser Plugin Interface](https://docs.solana.com/developing/plugins/geyser-plugins) for use with Solana validators.
+This is `x1-geyser-postgres`, an X1 Geyser plugin that streams account data, transactions, slots, and block metadata to a PostgreSQL database. It implements the Geyser Plugin Interface for use with X1 validators.
 
 ## Build Commands
 
@@ -93,7 +93,7 @@ JSON config file with key options:
 ### Output Artifact
 
 The build produces a dynamic library:
-- Linux: `libsolana_geyser_plugin_postgres.so`
-- macOS: `libsolana_geyser_plugin_postgres.dylib`
+- Linux: `libx1_geyser_postgres.so`
+- macOS: `libx1_geyser_postgres.dylib`
 
 Validators load this via `--geyser-plugin-config <config.json>`.
