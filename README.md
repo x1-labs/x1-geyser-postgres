@@ -15,16 +15,18 @@ This produces `target/release/libx1_geyser_postgres.so` (Linux) or `.dylib` (mac
 ### 2. Set Up PostgreSQL
 
 ```bash
-# Install PostgreSQL (Ubuntu)
-sudo apt-get install postgresql-14
-sudo systemctl start postgresql@14-main
+# Install PostgreSQL (Ubuntu 24.04)
+sudo apt install postgresql
 
 # Create database and user
-sudo -u postgres createdb x1
-sudo -u postgres createuser x1
+sudo -u postgres createuser -s x1
+sudo -u postgres createdb -O x1 x1
+
+# Set password for x1 user
+sudo -u postgres psql -c "ALTER USER x1 WITH PASSWORD 'x1';"
 
 # Create schema
-psql -U x1 -d x1 -f scripts/create_schema.sql
+PGPASSWORD=x1 psql -U x1 -h localhost -d x1 -f scripts/create_schema.sql
 ```
 
 ### 3. Configure the Plugin
@@ -141,24 +143,30 @@ Select all vote transactions:
 ### Install PostgreSQL
 
 ```bash
-# Ubuntu
-sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-sudo apt-get update
-sudo apt-get -y install postgresql-14
+# Ubuntu 24.04
+sudo apt install postgresql
+
+# The service starts automatically after installation
+sudo systemctl status postgresql
 ```
 
 ### Configure Access Control
 
-In `/etc/postgresql/14/main/pg_hba.conf`, add entries for your validator nodes:
+In `/etc/postgresql/16/main/pg_hba.conf`, add entries for your validator nodes:
 
 ```
-host    all    all    10.138.0.0/24    trust
+host    all    all    10.138.0.0/24    scram-sha-256
+```
+
+Then restart the service:
+
+```bash
+sudo systemctl restart postgresql
 ```
 
 ### Performance Tuning
 
-In `/etc/postgresql/14/main/postgresql.conf`:
+In `/etc/postgresql/16/main/postgresql.conf`:
 
 ```
 max_connections = 200
@@ -171,26 +179,30 @@ full_page_writes = off
 max_wal_senders = 0
 ```
 
+Then restart the service:
+
+```bash
+sudo systemctl restart postgresql
+```
+
 See `scripts/postgresql.conf` for a complete reference configuration.
 
 ### Create Database and Schema
 
 ```bash
-# Start PostgreSQL
-sudo systemctl start postgresql@14-main
-
-# Create database and user
-sudo -u postgres createdb x1 -p 5432
-sudo -u postgres createuser -p 5432 x1
+# Create user and database
+sudo -u postgres createuser -s x1
+sudo -u postgres createdb -O x1 x1
+sudo -u postgres psql -c "ALTER USER x1 WITH PASSWORD 'x1';"
 
 # Create schema
-psql -U x1 -p 5432 -h localhost -d x1 -f scripts/create_schema.sql
+PGPASSWORD=x1 psql -U x1 -h localhost -d x1 -f scripts/create_schema.sql
 ```
 
 ### Drop Schema
 
 ```bash
-psql -U x1 -p 5432 -h localhost -d x1 -f scripts/drop_schema.sql
+PGPASSWORD=x1 psql -U x1 -h localhost -d x1 -f scripts/drop_schema.sql
 ```
 
 ---

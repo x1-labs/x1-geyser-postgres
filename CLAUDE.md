@@ -24,22 +24,22 @@ cargo clippy --workspace --all-targets -- --deny=warnings
 
 ## Database Setup for Testing
 
-Tests require a PostgreSQL 14 database. On Ubuntu:
+Tests require PostgreSQL. On Ubuntu 24.04:
 
 ```bash
-# Install PostgreSQL
-sudo apt-get install postgresql-14
-sudo /etc/init.d/postgresql start
+# Install PostgreSQL (starts automatically)
+sudo apt install postgresql
 
 # Create user and database
-sudo -u postgres psql --command "CREATE USER x1 WITH SUPERUSER PASSWORD 'x1';"
+sudo -u postgres createuser -s x1
 sudo -u postgres createdb -O x1 x1
+sudo -u postgres psql -c "ALTER USER x1 WITH PASSWORD 'x1';"
 
 # Initialize schema
-PGPASSWORD=x1 psql -U x1 -p 5432 -h localhost -w -d x1 -f scripts/create_schema.sql
+PGPASSWORD=x1 psql -U x1 -h localhost -d x1 -f scripts/create_schema.sql
 
 # Clean up between test runs (to avoid duplicate key violations)
-PGPASSWORD=x1 psql -U x1 -p 5432 -h localhost -w -d x1 -f scripts/drop_schema.sql
+PGPASSWORD=x1 psql -U x1 -h localhost -d x1 -f scripts/drop_schema.sql
 ```
 
 ## Architecture

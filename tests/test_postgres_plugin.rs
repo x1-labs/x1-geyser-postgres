@@ -5,21 +5,19 @@ use serde_json::json;
 /// Integration testing for the PostgreSQL plugin
 /// This requires a PostgreSQL database named 'x1' be setup at localhost at port 5432
 /// This is automatically setup in the CI environment.
-/// To setup manually on Ubuntu Linux, do the following,
-/// sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-/// wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-/// apt install -y postgresql-14
-/// sudo /etc/init.d/postgresql start
 ///
-/// sudo -u postgres psql --command "CREATE USER x1 WITH SUPERUSER PASSWORD 'x1';"
+/// To setup manually on Ubuntu 24.04:
+/// sudo apt install postgresql
+/// sudo -u postgres createuser -s x1
 /// sudo -u postgres createdb -O x1 x1
-/// PGPASSWORD=x1 psql -U x1 -p 5432 -h localhost -w -d x1 -f scripts/create_schema.sql
+/// sudo -u postgres psql -c "ALTER USER x1 WITH PASSWORD 'x1';"
+/// PGPASSWORD=x1 psql -U x1 -h localhost -d x1 -f scripts/create_schema.sql
 ///
 /// The test will cover transmitting accounts, transaction and slot,
 /// block metadata.
 ///
 /// To clean up the database: run the following, otherwise you may run into duplicate key violations:
-/// PGPASSWORD=x1 psql -U x1 -p 5432 -h localhost -w -d x1 -f scripts/drop_schema.sql
+/// PGPASSWORD=x1 psql -U x1 -h localhost -d x1 -f scripts/drop_schema.sql
 ///
 /// Before running 'cargo test', please run 'cargo build'
 use {
