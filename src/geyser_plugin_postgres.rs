@@ -5,14 +5,14 @@ use {
         postgres_client::{ParallelPostgresClient, PostgresClientBuilder},
         transaction_selector::TransactionSelector,
     },
+    agave_geyser_plugin_interface::geyser_plugin_interface::{
+        GeyserPlugin, GeyserPluginError, ReplicaAccountInfoVersions, ReplicaBlockInfoVersions,
+        ReplicaTransactionInfoVersions, Result, SlotStatus,
+    },
     bs58,
     log::*,
     serde_derive::{Deserialize, Serialize},
     serde_json,
-    agave_geyser_plugin_interface::geyser_plugin_interface::{
-        GeyserPlugin, GeyserPluginError, ReplicaAccountInfoVersions,
-        ReplicaBlockInfoVersions, ReplicaTransactionInfoVersions, Result, SlotStatus,
-    },
     solana_clock::Slot,
     solana_measure::measure::Measure,
     solana_metrics::*,
@@ -321,7 +321,12 @@ impl GeyserPlugin for GeyserPluginPostgres {
         Ok(())
     }
 
-    fn update_slot_status(&self, slot: u64, parent: Option<u64>, status: &SlotStatus) -> Result<()> {
+    fn update_slot_status(
+        &self,
+        slot: u64,
+        parent: Option<u64>,
+        status: &SlotStatus,
+    ) -> Result<()> {
         info!("Updating slot {:?} at with status {:?}", slot, status);
 
         match &self.client {

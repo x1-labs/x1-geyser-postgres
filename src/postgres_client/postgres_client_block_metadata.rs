@@ -5,12 +5,12 @@ use {
             postgres_client_transaction::DbReward, SimplePostgresClient, UpdateBlockMetadataRequest,
         },
     },
-    chrono::Utc,
-    log::*,
-    postgres::{Client, Statement},
     agave_geyser_plugin_interface::geyser_plugin_interface::{
         GeyserPluginError, ReplicaBlockInfoV3, ReplicaBlockInfoV4,
     },
+    chrono::Utc,
+    log::*,
+    postgres::{Client, Statement},
 };
 
 #[derive(Clone, Debug)]
@@ -41,7 +41,12 @@ impl<'a> From<&ReplicaBlockInfoV4<'a>> for DbBlockInfo {
         Self {
             slot: block_info.slot as i64,
             blockhash: block_info.blockhash.to_string(),
-            rewards: block_info.rewards.rewards.iter().map(DbReward::from).collect(),
+            rewards: block_info
+                .rewards
+                .rewards
+                .iter()
+                .map(DbReward::from)
+                .collect(),
             block_time: block_info.block_time,
             block_height: block_info
                 .block_height

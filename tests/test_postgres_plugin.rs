@@ -25,9 +25,6 @@ use {
     log::*,
     serial_test::serial,
     solana_core::validator::ValidatorConfig,
-    x1_geyser_postgres::{
-        geyser_plugin_postgres::GeyserPluginPostgresConfig, postgres_client::SimplePostgresClient,
-    },
     solana_local_cluster::{
         local_cluster::{ClusterConfig, LocalCluster},
         validator_configs::*,
@@ -47,6 +44,9 @@ use {
         time::Duration,
     },
     tempfile::TempDir,
+    x1_geyser_postgres::{
+        geyser_plugin_postgres::GeyserPluginPostgresConfig, postgres_client::SimplePostgresClient,
+    },
 };
 
 const RUST_LOG_FILTER: &str =

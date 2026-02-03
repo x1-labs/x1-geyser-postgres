@@ -10,6 +10,9 @@ use {
         geyser_plugin_postgres::{GeyserPluginPostgresConfig, GeyserPluginPostgresError},
         postgres_client::postgres_client_account_index::TokenSecondaryIndexEntry,
     },
+    agave_geyser_plugin_interface::geyser_plugin_interface::{
+        GeyserPluginError, ReplicaAccountInfoV3, ReplicaBlockInfoV3, ReplicaBlockInfoV4, SlotStatus,
+    },
     chrono::Utc,
     crossbeam_channel::{bounded, Receiver, RecvTimeoutError, Sender},
     log::*,
@@ -18,9 +21,6 @@ use {
     postgres_client_block_metadata::DbBlockInfo,
     postgres_client_transaction::LogTransactionRequest,
     postgres_openssl::MakeTlsConnector,
-    agave_geyser_plugin_interface::geyser_plugin_interface::{
-        GeyserPluginError, ReplicaAccountInfoV3, ReplicaBlockInfoV3, ReplicaBlockInfoV4, SlotStatus,
-    },
     solana_measure::measure::Measure,
     solana_metrics::*,
     solana_sdk::timing::AtomicInterval,
@@ -450,7 +450,6 @@ impl SimplePostgresClient {
         }
     }
 
-
     fn build_bulk_account_insert_statement(
         client: &mut Client,
         config: &GeyserPluginPostgresConfig,
@@ -864,7 +863,10 @@ impl SimplePostgresClient {
         let status_str = status.as_str();
 
         let result = match parent {
-            Some(parent) => client.execute(statement, &[&slot_i64, &parent, &status_str, &epoch, &updated_on]),
+            Some(parent) => client.execute(
+                statement,
+                &[&slot_i64, &parent, &status_str, &epoch, &updated_on],
+            ),
             None => client.execute(statement, &[&slot_i64, &status_str, &epoch, &updated_on]),
         };
 
@@ -1047,7 +1049,14 @@ impl PostgresClient for SimplePostgresClient {
             None => &client.update_slot_without_parent_stmt,
         };
 
-        Self::upsert_slot_status_internal(slot, parent, status, &mut client.client, statement, &epoch_config)
+        Self::upsert_slot_status_internal(
+            slot,
+            parent,
+            status,
+            &mut client.client,
+            statement,
+            &epoch_config,
+        )
     }
 
     fn notify_end_of_startup(&mut self) -> Result<(), GeyserPluginError> {
