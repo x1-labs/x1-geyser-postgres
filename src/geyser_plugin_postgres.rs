@@ -122,52 +122,73 @@ impl GeyserPlugin for GeyserPluginPostgres {
     /// Do initialization for the PostgreSQL plugin.
     ///
     /// # Format of the config file:
-    /// * The `accounts_selector` section allows the user to controls accounts selections.
-    /// "accounts_selector" : {
-    ///     "accounts" : \["pubkey-1", "pubkey-2", ..., "pubkey-n"\],
-    /// }
-    /// or:
-    /// "accounts_selector" = {
-    ///     "owners" : \["pubkey-1", "pubkey-2", ..., "pubkey-m"\]
-    /// }
-    /// Accounts either satisyfing the accounts condition or owners condition will be selected.
-    /// When only owners is specified,
-    /// all accounts belonging to the owners will be streamed.
-    /// The accounts field supports wildcard to select all accounts:
-    /// "accounts_selector" : {
-    ///     "accounts" : \["*"\],
-    /// }
-    /// * "host", optional, specifies the PostgreSQL server.
-    /// * "user", optional, specifies the PostgreSQL user.
-    /// * "port", optional, specifies the PostgreSQL server's port.
-    /// * "connection_str", optional, the custom PostgreSQL connection string.
-    /// Please refer to https://docs.rs/postgres/0.19.2/postgres/config/struct.Config.html for the connection configuration.
-    /// When `connection_str` is set, the values in "host", "user" and "port" are ignored. If `connection_str` is not given,
-    /// `host` and `user` must be given.
-    /// "store_account_historical_data", optional, set it to 'true', to store historical account data to account_audit
-    /// table.
-    /// * "threads" optional, specifies the number of worker threads for the plugin. A thread
-    /// maintains a PostgreSQL connection to the server. The default is '10'.
-    /// * "batch_size" optional, specifies the batch size of bulk insert when the AccountsDb is created
-    /// from restoring a snapshot. The default is '10'.
-    /// * "panic_on_db_errors", optional, contols if to panic when there are errors replicating data to the
-    /// PostgreSQL database. The default is 'false'.
-    /// * "transaction_selector", optional, controls if and what transaction to store. If this field is missing
-    /// None of the transction is stored.
-    /// "transaction_selector" : {
-    ///     "mentions" : \["pubkey-1", "pubkey-2", ..., "pubkey-n"\],
-    /// }
-    /// The `mentions` field support wildcard to select all transaction or all 'vote' transactions:
-    /// For example, to select all transactions:
-    /// "transaction_selector" : {
-    ///     "mentions" : \["*"\],
-    /// }
-    /// To select all vote transactions:
-    /// "transaction_selector" : {
-    ///     "mentions" : \["all_votes"\],
-    /// }
-    /// # Examples
     ///
+    /// The `accounts_selector` section allows the user to controls accounts selections.
+    ///
+    /// ```json
+    /// "accounts_selector" : {
+    ///     "accounts" : ["pubkey-1", "pubkey-2", ..., "pubkey-n"]
+    /// }
+    /// ```
+    ///
+    /// or:
+    ///
+    /// ```json
+    /// "accounts_selector" : {
+    ///     "owners" : ["pubkey-1", "pubkey-2", ..., "pubkey-m"]
+    /// }
+    /// ```
+    ///
+    /// Accounts either satisfying the accounts condition or owners condition will be selected.
+    /// When only owners is specified, all accounts belonging to the owners will be streamed.
+    /// The accounts field supports wildcard to select all accounts:
+    ///
+    /// ```json
+    /// "accounts_selector" : {
+    ///     "accounts" : ["*"]
+    /// }
+    /// ```
+    ///
+    /// Configuration options:
+    /// - `host`: optional, specifies the PostgreSQL server
+    /// - `user`: optional, specifies the PostgreSQL user
+    /// - `port`: optional, specifies the PostgreSQL server's port
+    /// - `connection_str`: optional, the custom PostgreSQL connection string.
+    ///   See <https://docs.rs/postgres/0.19.2/postgres/config/struct.Config.html>.
+    ///   When set, `host`, `user` and `port` are ignored.
+    /// - `store_account_historical_data`: optional, set to true to store historical account data
+    /// - `threads`: optional, number of worker threads (default: 10)
+    /// - `batch_size`: optional, bulk insert batch size (default: 10)
+    /// - `panic_on_db_errors`: optional, panic on database errors (default: false)
+    /// - `transaction_selector`: optional, controls which transactions to store
+    ///
+    /// Transaction selector examples:
+    ///
+    /// ```json
+    /// "transaction_selector" : {
+    ///     "mentions" : ["pubkey-1", "pubkey-2"]
+    /// }
+    /// ```
+    ///
+    /// Select all transactions:
+    ///
+    /// ```json
+    /// "transaction_selector" : {
+    ///     "mentions" : ["*"]
+    /// }
+    /// ```
+    ///
+    /// Select all vote transactions:
+    ///
+    /// ```json
+    /// "transaction_selector" : {
+    ///     "mentions" : ["all_votes"]
+    /// }
+    /// ```
+    ///
+    /// # Example config
+    ///
+    /// ```json
     /// {
     ///    "libpath": "/home/x1/target/release/libx1_geyser_postgres.so",
     ///    "host": "host_foo",
@@ -177,7 +198,7 @@ impl GeyserPlugin for GeyserPluginPostgres {
     ///       "owners" : ["9oT9R5ZyRovSVnt37QvVoBttGpNqR3J7unkb567NP8k3"]
     ///    }
     /// }
-
+    /// ```
     fn on_load(&mut self, config_file: &str, _is_reload: bool) -> Result<()> {
         solana_logger::setup_with_default("info");
         info!(

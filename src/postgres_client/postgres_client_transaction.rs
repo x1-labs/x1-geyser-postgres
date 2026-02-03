@@ -258,7 +258,7 @@ impl From<&v0::Message> for DbTransactionMessageV0 {
     }
 }
 
-impl<'a> From<&v0::LoadedMessage<'a>> for DbLoadedMessageV0 {
+impl From<&v0::LoadedMessage<'_>> for DbLoadedMessageV0 {
     fn from(message: &v0::LoadedMessage) -> Self {
         Self {
             message: DbTransactionMessageV0::from(&message.message as &v0::Message),

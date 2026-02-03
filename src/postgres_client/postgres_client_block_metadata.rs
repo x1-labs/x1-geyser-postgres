@@ -22,7 +22,7 @@ pub struct DbBlockInfo {
     pub block_height: Option<i64>,
 }
 
-impl<'a> From<&ReplicaBlockInfoV3<'a>> for DbBlockInfo {
+impl From<&ReplicaBlockInfoV3<'_>> for DbBlockInfo {
     fn from(block_info: &ReplicaBlockInfoV3) -> Self {
         Self {
             slot: block_info.slot as i64,
@@ -36,7 +36,7 @@ impl<'a> From<&ReplicaBlockInfoV3<'a>> for DbBlockInfo {
     }
 }
 
-impl<'a> From<&ReplicaBlockInfoV4<'a>> for DbBlockInfo {
+impl From<&ReplicaBlockInfoV4<'_>> for DbBlockInfo {
     fn from(block_info: &ReplicaBlockInfoV4) -> Self {
         Self {
             slot: block_info.slot as i64,

@@ -285,7 +285,7 @@ impl ReadableAccountInfo for DbAccountInfo {
     }
 }
 
-impl<'a> ReadableAccountInfo for ReplicaAccountInfoV3<'a> {
+impl ReadableAccountInfo for ReplicaAccountInfoV3<'_> {
     fn pubkey(&self) -> &[u8] {
         self.pubkey
     }
