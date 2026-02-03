@@ -10,3 +10,11 @@ Cargo.lock
 **/*.rs.bk
 
 farf/
+
+# IDE
+.idea/
+
+# Local config files
+identity.json
+*-config.json
+run-*.sh
