@@ -32,14 +32,14 @@ sudo apt-get install postgresql-14
 sudo /etc/init.d/postgresql start
 
 # Create user and database
-sudo -u postgres psql --command "CREATE USER solana WITH SUPERUSER PASSWORD 'solana';"
-sudo -u postgres createdb -O solana solana
+sudo -u postgres psql --command "CREATE USER x1 WITH SUPERUSER PASSWORD 'x1';"
+sudo -u postgres createdb -O x1 x1
 
 # Initialize schema
-PGPASSWORD=solana psql -U solana -p 5432 -h localhost -w -d solana -f scripts/create_schema.sql
+PGPASSWORD=x1 psql -U x1 -p 5432 -h localhost -w -d x1 -f scripts/create_schema.sql
 
 # Clean up between test runs (to avoid duplicate key violations)
-PGPASSWORD=solana psql -U solana -p 5432 -h localhost -w -d solana -f scripts/drop_schema.sql
+PGPASSWORD=x1 psql -U x1 -p 5432 -h localhost -w -d x1 -f scripts/drop_schema.sql
 ```
 
 ## Architecture

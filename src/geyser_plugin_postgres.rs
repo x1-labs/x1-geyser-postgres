@@ -171,7 +171,7 @@ impl GeyserPlugin for GeyserPluginPostgres {
     /// {
     ///    "libpath": "/home/x1/target/release/libx1_geyser_postgres.so",
     ///    "host": "host_foo",
-    ///    "user": "solana",
+    ///    "user": "x1",
     ///    "threads": 10,
     ///    "accounts_selector" : {
     ///       "owners" : ["9oT9R5ZyRovSVnt37QvVoBttGpNqR3J7unkb567NP8k3"]

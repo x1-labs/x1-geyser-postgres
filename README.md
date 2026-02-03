@@ -20,11 +20,11 @@ sudo apt-get install postgresql-14
 sudo systemctl start postgresql@14-main
 
 # Create database and user
-sudo -u postgres createdb solana
-sudo -u postgres createuser solana
+sudo -u postgres createdb x1
+sudo -u postgres createuser x1
 
 # Create schema
-psql -U solana -d solana -f scripts/create_schema.sql
+psql -U x1 -d x1 -f scripts/create_schema.sql
 ```
 
 ### 3. Configure the Plugin
@@ -35,7 +35,7 @@ Create a config file (e.g., `geyser-config.json`):
 {
     "libpath": "/path/to/libx1_geyser_postgres.so",
     "host": "localhost",
-    "user": "solana",
+    "user": "x1",
     "port": 5432,
     "threads": 20,
     "batch_size": 20,
@@ -52,7 +52,7 @@ Create a config file (e.g., `geyser-config.json`):
 ### 4. Run the Validator
 
 ```bash
-solana-validator --geyser-plugin-config geyser-config.json ...
+x1-validator --geyser-plugin-config geyser-config.json ...
 ```
 
 ---
@@ -180,17 +180,17 @@ See `scripts/postgresql.conf` for a complete reference configuration.
 sudo systemctl start postgresql@14-main
 
 # Create database and user
-sudo -u postgres createdb solana -p 5432
-sudo -u postgres createuser -p 5432 solana
+sudo -u postgres createdb x1 -p 5432
+sudo -u postgres createuser -p 5432 x1
 
 # Create schema
-psql -U solana -p 5432 -h localhost -d solana -f scripts/create_schema.sql
+psql -U x1 -p 5432 -h localhost -d x1 -f scripts/create_schema.sql
 ```
 
 ### Drop Schema
 
 ```bash
-psql -U solana -p 5432 -h localhost -d solana -f scripts/drop_schema.sql
+psql -U x1 -p 5432 -h localhost -d x1 -f scripts/drop_schema.sql
 ```
 
 ---
