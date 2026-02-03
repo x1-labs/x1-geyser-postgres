@@ -5,7 +5,7 @@ name = "x1-geyser-postgres"
 description = "The X1 Geyser plugin for PostgreSQL database."
 version = "2.2.7"
 repository = "https://github.com/x1-labs/x1-geyser-postgres"
-license = "Apache-2.0"
+license = "MIT"
 homepage = "https://x1.xyz/"
 documentation = "https://docs.x1.xyz"
 
