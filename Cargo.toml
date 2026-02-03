@@ -47,6 +47,7 @@ socket2 = { version = "0.4.7", features = ["all"] }
 home = "=0.5.9"
 globset = "=0.4.15"
 async-lock = "=3.4.0"
+time = "=0.3.36"
 
 solana-account-decoder = { version = "=2.2.7" }
 solana-core = { version = "=2.2.7" }
