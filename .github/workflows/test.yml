@@ -18,8 +18,15 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libudev-dev protobuf-compiler libclang-dev
 
+    - name: Increase file descriptor limit
+      run: |
+        echo "* soft nofile 1000000" | sudo tee -a /etc/security/limits.conf
+        echo "* hard nofile 1000000" | sudo tee -a /etc/security/limits.conf
+        sudo sysctl -w fs.file-max=1000000
+        ulimit -n 1000000 || ulimit -n 65536
+
     - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@1.82.0
+      uses: dtolnay/rust-toolchain@1.84.1
       with:
         components: rustfmt, clippy
 
