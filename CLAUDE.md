@@ -20,7 +20,7 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- --deny=warnings
 ```
 
-**Required Rust version**: 1.82.0 (see `ci/rust-version.sh`)
+**Required Rust version**: 1.84.1 (see `rust-toolchain.toml`)
 
 ## Database Setup for Testing
 
